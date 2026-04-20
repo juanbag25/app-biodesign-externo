@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
@@ -29,12 +30,21 @@ export default function Header({ labName }: { labName: string }) {
             {labName}
           </span>
         </div>
-        <button
-          onClick={handleSignOut}
-          className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100 transition-colors"
-        >
-          Cerrar sesión
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/cambiar-contrasena"
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100 transition-colors"
+          >
+            <span className="hidden sm:inline">Cambiar contraseña</span>
+            <span className="sm:hidden">Contraseña</span>
+          </Link>
+          <button
+            onClick={handleSignOut}
+            className="rounded-lg border border-gray-300 px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-900 active:bg-gray-100 transition-colors"
+          >
+            Cerrar sesión
+          </button>
+        </div>
       </div>
     </header>
   );
