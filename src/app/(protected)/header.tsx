@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { ThemeToggle } from "@/lib/theme";
 
 export default function Header({ labName }: { labName: string }) {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Header({ labName }: { labName: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border bg-[#0a0a0a]/95 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 border-b border-border bg-bg-header backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
         <div className="flex items-center gap-3">
           <Image
@@ -24,24 +25,33 @@ export default function Header({ labName }: { labName: string }) {
             alt="Biodesign"
             width={88}
             height={26}
-            className="opacity-80"
+            className="hidden dark:block opacity-80"
           />
-          <span className="text-neutral-600">|</span>
-          <span className="text-sm text-neutral-400">{labName}</span>
+          <Image
+            src="/logooscuro.png"
+            alt="Biodesign"
+            width={88}
+            height={26}
+            className="block dark:hidden opacity-70"
+          />
+          <span className="hidden sm:inline text-text-muted">|</span>
+          <span className="hidden sm:inline text-sm text-text-secondary">
+            {labName}
+          </span>
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Link
             href="/cambiar-contrasena"
-            className="rounded-lg border border-border px-3 py-1.5 text-sm text-neutral-400 hover:bg-surface-hover hover:text-neutral-200 active:bg-surface transition-colors"
+            className="hidden sm:inline-block rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface transition-colors"
           >
-            <span className="hidden sm:inline">Cambiar contraseña</span>
-            <span className="sm:hidden">Contraseña</span>
+            Contraseña
           </Link>
           <button
             onClick={handleSignOut}
-            className="rounded-lg border border-border px-3 py-1.5 text-sm text-neutral-400 hover:bg-surface-hover hover:text-neutral-200 active:bg-surface transition-colors"
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface transition-colors"
           >
-            Cerrar sesión
+            Salir
           </button>
         </div>
       </div>

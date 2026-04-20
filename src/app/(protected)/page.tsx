@@ -141,7 +141,7 @@ export default function HomePage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nombre, DNI o ID de paciente"
-            className="flex-1 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="flex-1 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text-primary placeholder-input-placeholder focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           />
           <button
             type="submit"
@@ -162,12 +162,12 @@ export default function HomePage() {
       {/* Search results (multiple) */}
       {searchDone && !selectedPatient && patients.length > 1 && (
         <section>
-          <h2 className="mb-2 text-sm font-medium text-neutral-500">
+          <h2 className="mb-2 text-sm font-medium text-text-muted">
             {patients.length} resultados
           </h2>
           <div className="overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="w-full text-sm">
-              <thead className="border-b border-border-subtle text-left text-xs uppercase tracking-wide text-neutral-500">
+              <thead className="border-b border-border-subtle text-left text-xs uppercase tracking-wide text-text-muted">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">ID</th>
                   <th className="px-4 py-2.5 font-medium">DNI</th>
@@ -181,13 +181,13 @@ export default function HomePage() {
                     onClick={() => selectPatient(p)}
                     className="cursor-pointer hover:bg-surface-hover active:bg-border-subtle transition-colors"
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-neutral-600 tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-3 text-text-muted tabular-nums">
                       {p.id}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-neutral-300">
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-text-secondary">
                       {p.dni}
                     </td>
-                    <td className="px-4 py-3 font-medium text-neutral-100">
+                    <td className="px-4 py-3 font-medium text-text-primary">
                       {p.last_name}, {p.first_name}
                     </td>
                   </tr>
@@ -201,7 +201,7 @@ export default function HomePage() {
       {/* No results */}
       {searchDone && patients.length === 0 && (
         <div className="rounded-xl border border-border bg-surface px-4 py-8 text-center">
-          <p className="text-sm text-neutral-500">No se encontraron pacientes.</p>
+          <p className="text-sm text-text-muted">No se encontraron pacientes.</p>
         </div>
       )}
 
@@ -212,10 +212,10 @@ export default function HomePage() {
           <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-neutral-100">
+                <h2 className="text-lg font-semibold text-text-primary">
                   {selectedPatient.last_name}, {selectedPatient.first_name}
                 </h2>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-neutral-500">
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-text-muted">
                   <span className="tabular-nums">ID: {selectedPatient.id}</span>
                   <span className="tabular-nums">DNI: {selectedPatient.dni}</span>
                 </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
               {patients.length > 1 && (
                 <button
                   onClick={() => setSelectedPatient(null)}
-                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-blue-400 hover:bg-blue-950/30 active:bg-blue-950/50 transition-colors"
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-text-link hover:bg-surface-hover active:bg-border-subtle transition-colors"
                 >
                   Volver
                 </button>
@@ -234,14 +234,14 @@ export default function HomePage() {
           {/* Scans */}
           {loadingScans ? (
             <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-8 justify-center">
-              <Spinner className="text-blue-400" />
-              <span className="text-sm text-neutral-500">
+              <Spinner className="text-blue-500" />
+              <span className="text-sm text-text-muted">
                 Cargando escaneos...
               </span>
             </div>
           ) : scans.length === 0 ? (
             <div className="rounded-xl border border-border bg-surface px-4 py-8 text-center">
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-text-muted">
                 Este paciente no tiene escaneos.
               </p>
             </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
               <div>
                 <label
                   htmlFor="scan-select"
-                  className="block text-sm font-medium text-neutral-300"
+                  className="block text-sm font-medium text-text-secondary"
                 >
                   Escaneo
                 </label>
@@ -259,7 +259,7 @@ export default function HomePage() {
                   id="scan-select"
                   value={selectedScan?.id ?? ""}
                   onChange={(e) => handleScanChange(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-neutral-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-52"
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-52"
                 >
                   {scans.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -310,7 +310,7 @@ export default function HomePage() {
 
                   {updateError && (
                     <div className="border-t border-border-subtle px-4 py-3 sm:px-5">
-                      <p className="text-sm text-red-400">{updateError}</p>
+                      <p className="text-sm text-error-text">{updateError}</p>
                     </div>
                   )}
                 </div>
@@ -336,24 +336,24 @@ function AlignerCount({
 
   return (
     <div className="px-4 py-4 sm:px-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
         {label}
       </p>
       {pending ? (
-        <p className="mt-1 text-sm italic text-neutral-600">
+        <p className="mt-1 text-sm italic text-text-muted">
           Pendiente de alineación
         </p>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-100">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-text-primary">
             {count}
           </p>
           <div className="mt-2">
-            <div className="flex items-center justify-between text-xs text-neutral-500">
+            <div className="flex items-center justify-between text-xs text-text-muted">
               <span>Etapa {stage}/{count}</span>
               <span>{count > 0 ? Math.round((stage / count) * 100) : 0}%</span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-progress-bg">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-300"
                 style={{
@@ -394,12 +394,12 @@ function StageDropdown({
     <div>
       <label
         htmlFor={field}
-        className="block text-sm font-medium text-neutral-300"
+        className="block text-sm font-medium text-text-secondary"
       >
         {label}
       </label>
       {disabled ? (
-        <p className="mt-1.5 text-sm italic text-neutral-600">
+        <p className="mt-1.5 text-sm italic text-text-muted">
           Pendiente de alineación
         </p>
       ) : (
@@ -409,7 +409,7 @@ function StageDropdown({
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
             disabled={saving}
-            className="w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-sm tabular-nums text-neutral-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:opacity-50 sm:w-28"
+            className="w-full rounded-lg border border-border bg-input-bg px-3 py-2.5 text-sm tabular-nums text-text-primary focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:opacity-50 sm:w-28"
           >
             {options.map((n) => (
               <option key={n} value={n}>
@@ -418,13 +418,13 @@ function StageDropdown({
             ))}
           </select>
           {saving && (
-            <span className="flex items-center gap-1 text-xs text-neutral-500">
-              <Spinner className="text-neutral-500" />
+            <span className="flex items-center gap-1 text-xs text-text-muted">
+              <Spinner className="text-text-muted" />
               Guardando
             </span>
           )}
           {saved && (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-400">
+            <span className="flex items-center gap-1 text-xs font-medium text-success-text">
               <CheckIcon />
               Guardado
             </span>

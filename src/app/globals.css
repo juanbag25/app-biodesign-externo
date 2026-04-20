@@ -1,9 +1,70 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --bg: #f9fafb;
+  --bg-header: rgba(249, 250, 251, 0.95);
+  --surface: #ffffff;
+  --surface-hover: #f3f4f6;
+  --border: #e5e7eb;
+  --border-subtle: #f3f4f6;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-muted: #9ca3af;
+  --text-link: #2563eb;
+  --text-link-hover: #1d4ed8;
+  --input-bg: #ffffff;
+  --input-placeholder: #9ca3af;
+  --error-bg: #fef2f2;
+  --error-text: #b91c1c;
+  --success-bg: #f0fdf4;
+  --success-text: #15803d;
+  --progress-bg: #e5e7eb;
+  --ring-offset: #f9fafb;
+}
+
+.dark {
+  --bg: #0a0a0a;
+  --bg-header: rgba(10, 10, 10, 0.95);
+  --surface: #111111;
+  --surface-hover: #1a1a1a;
+  --border: #262626;
+  --border-subtle: #1f1f1f;
+  --text-primary: #fafafa;
+  --text-secondary: #a3a3a3;
+  --text-muted: #525252;
+  --text-link: #60a5fa;
+  --text-link-hover: #93bbfd;
+  --input-bg: #1a1a1a;
+  --input-placeholder: #525252;
+  --error-bg: rgba(127, 29, 29, 0.3);
+  --error-text: #f87171;
+  --success-bg: rgba(20, 83, 45, 0.3);
+  --success-text: #4ade80;
+  --progress-bg: #262626;
+  --ring-offset: #0a0a0a;
+}
+
 @theme inline {
   --font-sans: var(--font-geist-sans);
-  --color-surface: #111111;
-  --color-surface-hover: #1a1a1a;
-  --color-border: #262626;
-  --color-border-subtle: #1f1f1f;
+  --color-bg: var(--bg);
+  --color-bg-header: var(--bg-header);
+  --color-surface: var(--surface);
+  --color-surface-hover: var(--surface-hover);
+  --color-border: var(--border);
+  --color-border-subtle: var(--border-subtle);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+  --color-text-link: var(--text-link);
+  --color-text-link-hover: var(--text-link-hover);
+  --color-input-bg: var(--input-bg);
+  --color-input-placeholder: var(--input-placeholder);
+  --color-error-bg: var(--error-bg);
+  --color-error-text: var(--error-text);
+  --color-success-bg: var(--success-bg);
+  --color-success-text: var(--success-text);
+  --color-progress-bg: var(--progress-bg);
+  --color-ring-offset: var(--ring-offset);
 }
