@@ -141,12 +141,12 @@ export default function HomePage() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Buscar por nombre, DNI o ID de paciente"
-            className="flex-1 rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 placeholder-gray-400 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+            className="flex-1 rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-neutral-100 placeholder-neutral-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
           />
           <button
             type="submit"
             disabled={searching || !searchTerm.trim()}
-            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {searching && <Spinner />}
             <span className="hidden sm:inline">
@@ -162,32 +162,32 @@ export default function HomePage() {
       {/* Search results (multiple) */}
       {searchDone && !selectedPatient && patients.length > 1 && (
         <section>
-          <h2 className="mb-2 text-sm font-medium text-gray-600">
+          <h2 className="mb-2 text-sm font-medium text-neutral-500">
             {patients.length} resultados
           </h2>
-          <div className="overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-xl border border-border bg-surface">
             <table className="w-full text-sm">
-              <thead className="border-b border-gray-100 bg-gray-50/80 text-left text-xs uppercase tracking-wide text-gray-500">
+              <thead className="border-b border-border-subtle text-left text-xs uppercase tracking-wide text-neutral-500">
                 <tr>
                   <th className="px-4 py-2.5 font-medium">ID</th>
                   <th className="px-4 py-2.5 font-medium">DNI</th>
                   <th className="px-4 py-2.5 font-medium">Paciente</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-50">
+              <tbody className="divide-y divide-border-subtle">
                 {patients.map((p) => (
                   <tr
                     key={p.id}
                     onClick={() => selectPatient(p)}
-                    className="cursor-pointer hover:bg-blue-50/60 active:bg-blue-100/60 transition-colors"
+                    className="cursor-pointer hover:bg-surface-hover active:bg-border-subtle transition-colors"
                   >
-                    <td className="whitespace-nowrap px-4 py-3 text-gray-400 tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-3 text-neutral-600 tabular-nums">
                       {p.id}
                     </td>
-                    <td className="whitespace-nowrap px-4 py-3 tabular-nums">
+                    <td className="whitespace-nowrap px-4 py-3 tabular-nums text-neutral-300">
                       {p.dni}
                     </td>
-                    <td className="px-4 py-3 font-medium text-gray-900">
+                    <td className="px-4 py-3 font-medium text-neutral-100">
                       {p.last_name}, {p.first_name}
                     </td>
                   </tr>
@@ -200,8 +200,8 @@ export default function HomePage() {
 
       {/* No results */}
       {searchDone && patients.length === 0 && (
-        <div className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center shadow-sm">
-          <p className="text-sm text-gray-500">No se encontraron pacientes.</p>
+        <div className="rounded-xl border border-border bg-surface px-4 py-8 text-center">
+          <p className="text-sm text-neutral-500">No se encontraron pacientes.</p>
         </div>
       )}
 
@@ -209,13 +209,13 @@ export default function HomePage() {
       {selectedPatient && (
         <section className="space-y-4">
           {/* Patient card */}
-          <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:p-5">
+          <div className="rounded-xl border border-border bg-surface p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">
+                <h2 className="text-lg font-semibold text-neutral-100">
                   {selectedPatient.last_name}, {selectedPatient.first_name}
                 </h2>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-gray-500">
+                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-sm text-neutral-500">
                   <span className="tabular-nums">ID: {selectedPatient.id}</span>
                   <span className="tabular-nums">DNI: {selectedPatient.dni}</span>
                 </div>
@@ -223,7 +223,7 @@ export default function HomePage() {
               {patients.length > 1 && (
                 <button
                   onClick={() => setSelectedPatient(null)}
-                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-colors"
+                  className="shrink-0 rounded-lg px-3 py-1.5 text-sm text-blue-400 hover:bg-blue-950/30 active:bg-blue-950/50 transition-colors"
                 >
                   Volver
                 </button>
@@ -233,15 +233,15 @@ export default function HomePage() {
 
           {/* Scans */}
           {loadingScans ? (
-            <div className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-8 justify-center shadow-sm">
-              <Spinner className="text-blue-600" />
-              <span className="text-sm text-gray-500">
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-8 justify-center">
+              <Spinner className="text-blue-400" />
+              <span className="text-sm text-neutral-500">
                 Cargando escaneos...
               </span>
             </div>
           ) : scans.length === 0 ? (
-            <div className="rounded-xl border border-gray-200 bg-white px-4 py-8 text-center shadow-sm">
-              <p className="text-sm text-gray-500">
+            <div className="rounded-xl border border-border bg-surface px-4 py-8 text-center">
+              <p className="text-sm text-neutral-500">
                 Este paciente no tiene escaneos.
               </p>
             </div>
@@ -251,7 +251,7 @@ export default function HomePage() {
               <div>
                 <label
                   htmlFor="scan-select"
-                  className="block text-sm font-medium text-gray-700"
+                  className="block text-sm font-medium text-neutral-300"
                 >
                   Escaneo
                 </label>
@@ -259,7 +259,7 @@ export default function HomePage() {
                   id="scan-select"
                   value={selectedScan?.id ?? ""}
                   onChange={(e) => handleScanChange(Number(e.target.value))}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-52"
+                  className="mt-1 w-full rounded-lg border border-border bg-surface px-3 py-2.5 text-sm text-neutral-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-52"
                 >
                   {scans.map((s) => (
                     <option key={s.id} value={s.id}>
@@ -271,9 +271,9 @@ export default function HomePage() {
 
               {/* Scan details */}
               {selectedScan && (
-                <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
+                <div className="rounded-xl border border-border bg-surface">
                   {/* Aligner counts */}
-                  <div className="grid grid-cols-2 divide-x divide-gray-100 border-b border-gray-100">
+                  <div className="grid grid-cols-2 divide-x divide-border-subtle border-b border-border-subtle">
                     <AlignerCount
                       label="Superiores"
                       count={selectedScan.upper_aligners_count}
@@ -309,8 +309,8 @@ export default function HomePage() {
                   </div>
 
                   {updateError && (
-                    <div className="border-t border-gray-100 px-4 py-3 sm:px-5">
-                      <p className="text-sm text-red-600">{updateError}</p>
+                    <div className="border-t border-border-subtle px-4 py-3 sm:px-5">
+                      <p className="text-sm text-red-400">{updateError}</p>
                     </div>
                   )}
                 </div>
@@ -336,24 +336,24 @@ function AlignerCount({
 
   return (
     <div className="px-4 py-4 sm:px-5">
-      <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+      <p className="text-xs font-medium uppercase tracking-wide text-neutral-500">
         {label}
       </p>
       {pending ? (
-        <p className="mt-1 text-sm italic text-gray-400">
+        <p className="mt-1 text-sm italic text-neutral-600">
           Pendiente de alineación
         </p>
       ) : (
         <>
-          <p className="mt-1 text-2xl font-bold tabular-nums text-gray-900">
+          <p className="mt-1 text-2xl font-bold tabular-nums text-neutral-100">
             {count}
           </p>
           <div className="mt-2">
-            <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center justify-between text-xs text-neutral-500">
               <span>Etapa {stage}/{count}</span>
               <span>{count > 0 ? Math.round((stage / count) * 100) : 0}%</span>
             </div>
-            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+            <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-neutral-800">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-300"
                 style={{
@@ -394,12 +394,12 @@ function StageDropdown({
     <div>
       <label
         htmlFor={field}
-        className="block text-sm font-medium text-gray-700"
+        className="block text-sm font-medium text-neutral-300"
       >
         {label}
       </label>
       {disabled ? (
-        <p className="mt-1.5 text-sm italic text-gray-400">
+        <p className="mt-1.5 text-sm italic text-neutral-600">
           Pendiente de alineación
         </p>
       ) : (
@@ -409,7 +409,7 @@ function StageDropdown({
             value={value}
             onChange={(e) => onChange(Number(e.target.value))}
             disabled={saving}
-            className="w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm tabular-nums text-gray-900 shadow-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:opacity-50 sm:w-28"
+            className="w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-sm tabular-nums text-neutral-100 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:opacity-50 sm:w-28"
           >
             {options.map((n) => (
               <option key={n} value={n}>
@@ -418,13 +418,13 @@ function StageDropdown({
             ))}
           </select>
           {saving && (
-            <span className="flex items-center gap-1 text-xs text-gray-400">
-              <Spinner className="text-gray-400" />
+            <span className="flex items-center gap-1 text-xs text-neutral-500">
+              <Spinner className="text-neutral-500" />
               Guardando
             </span>
           )}
           {saved && (
-            <span className="flex items-center gap-1 text-xs font-medium text-green-600">
+            <span className="flex items-center gap-1 text-xs font-medium text-green-400">
               <CheckIcon />
               Guardado
             </span>

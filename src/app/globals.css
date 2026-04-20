@@ -2,4 +2,8 @@
 
 @theme inline {
   --font-sans: var(--font-geist-sans);
+  --color-surface: #111111;
+  --color-surface-hover: #1a1a1a;
+  --color-border: #262626;
+  --color-border-subtle: #1f1f1f;
 }

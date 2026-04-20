@@ -85,13 +85,13 @@ export default function ChangePasswordPage() {
     <div className="mx-auto max-w-sm space-y-4">
       <Link
         href="/"
-        className="inline-block rounded-lg px-3 py-1.5 text-sm text-blue-600 hover:bg-blue-50 active:bg-blue-100 transition-colors"
+        className="inline-block rounded-lg px-3 py-1.5 text-sm text-blue-400 hover:bg-blue-950/30 active:bg-blue-950/50 transition-colors"
       >
         &larr; Volver
       </Link>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
-        <h2 className="mb-5 text-lg font-semibold text-gray-900">
+      <div className="rounded-xl border border-border bg-surface p-6">
+        <h2 className="mb-5 text-lg font-semibold text-neutral-100">
           Cambiar contraseña
         </h2>
 
@@ -99,7 +99,7 @@ export default function ChangePasswordPage() {
           <div>
             <label
               htmlFor="current-password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-neutral-300"
             >
               Contraseña actual
             </label>
@@ -110,14 +110,14 @@ export default function ChangePasswordPage() {
               autoComplete="current-password"
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="mt-1 block w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-neutral-100 placeholder-neutral-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="new-password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-neutral-300"
             >
               Nueva contraseña
             </label>
@@ -128,14 +128,14 @@ export default function ChangePasswordPage() {
               autoComplete="new-password"
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="mt-1 block w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-neutral-100 placeholder-neutral-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
           <div>
             <label
               htmlFor="confirm-password"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-neutral-300"
             >
               Confirmar nueva contraseña
             </label>
@@ -146,18 +146,18 @@ export default function ChangePasswordPage() {
               autoComplete="new-password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-gray-900 placeholder-gray-400 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+              className="mt-1 block w-full rounded-lg border border-border bg-surface-hover px-3 py-2.5 text-neutral-100 placeholder-neutral-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
             />
           </div>
 
           {error && (
-            <div className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+            <div className="rounded-lg bg-red-950/50 px-3 py-2 text-sm text-red-400">
               {error}
             </div>
           )}
 
           {success && (
-            <div className="rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
+            <div className="rounded-lg bg-green-950/50 px-3 py-2 text-sm text-green-400">
               Contraseña actualizada correctamente.
             </div>
           )}
@@ -165,7 +165,7 @@ export default function ChangePasswordPage() {
           <button
             type="submit"
             disabled={loading}
-            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-[#0a0a0a] focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading && <Spinner />}
             {loading ? "Cambiando..." : "Cambiar contraseña"}
