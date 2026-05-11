@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/lib/theme";
@@ -41,12 +40,6 @@ export default function Header({ labName }: { labName: string }) {
         </div>
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <Link
-            href="/cambiar-contrasena"
-            className="hidden sm:inline-block rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface transition-colors"
-          >
-            Contraseña
-          </Link>
           <button
             onClick={handleSignOut}
             className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary active:bg-surface transition-colors"
