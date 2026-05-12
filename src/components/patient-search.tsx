@@ -31,11 +31,21 @@ export default function PatientSearch({
     setSearchDone(false);
 
     const isNumeric = /^\d+$/.test(term);
-    const isFiveDigit = /^\d{5}$/.test(term);
 
     let orFilters = `first_name.ilike.%${term}%,last_name.ilike.%${term}%`;
-    if (isNumeric) orFilters += `,dni.ilike.%${term}%`;
-    if (isFiveDigit) orFilters += `,id.eq.${term}`;
+    if (isNumeric) {
+      orFilters += `,dni.ilike.%${term}%`;
+
+      // Prefix match on 5-digit patient ID via range query.
+      // IDs are 10000-99999. Input "1" → [10000, 19999], "100" → [10000, 10099], "10023" → [10023, 10023].
+      if (term.length <= 5) {
+        const digits = term.length;
+        const multiplier = Math.pow(10, 5 - digits);
+        const lower = parseInt(term, 10) * multiplier;
+        const upper = lower + multiplier - 1;
+        orFilters += `,and(id.gte.${lower},id.lte.${upper})`;
+      }
+    }
 
     const { data } = await supabase
       .from("patients")

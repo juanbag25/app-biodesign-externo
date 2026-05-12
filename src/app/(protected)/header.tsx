@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/lib/theme";
@@ -18,7 +19,11 @@ export default function Header({ labName }: { labName: string }) {
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-bg-header backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
+        <Link
+          href="/"
+          className="flex items-center gap-3 rounded-lg -mx-1 px-1 hover:opacity-80 transition-opacity"
+          aria-label="Ir al inicio"
+        >
           <Image
             src="/logo.png"
             alt="Biodesign"
@@ -37,7 +42,7 @@ export default function Header({ labName }: { labName: string }) {
           <span className="hidden sm:inline text-sm text-text-secondary">
             {labName}
           </span>
-        </div>
+        </Link>
         <div className="flex items-center gap-2">
           <ThemeToggle />
           <button
