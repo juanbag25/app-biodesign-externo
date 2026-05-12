@@ -1,16 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import PatientSearch from "@/components/patient-search";
 import PatientCard from "@/components/patient-card";
 import PatientCreateForm from "@/components/patient-create-form";
 import ScanSection from "@/components/scan-section";
+import { HOME_RESET_EVENT } from "@/app/(protected)/header";
 import type { Patient } from "@/lib/types";
 
 export default function HomePage() {
   const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+
+  // Listen for "reset home" event (dispatched by clicking the logo on /)
+  useEffect(() => {
+    const handler = () => {
+      setPatients([]);
+      setSelectedPatient(null);
+      setShowCreateForm(false);
+      setResetKey((k) => k + 1); // forces PatientSearch to remount and clear its internal state
+    };
+    window.addEventListener(HOME_RESET_EVENT, handler);
+    return () => window.removeEventListener(HOME_RESET_EVENT, handler);
+  }, []);
 
   function handleResults(results: Patient[]) {
     setPatients(results);
@@ -32,6 +46,7 @@ export default function HomePage() {
   return (
     <div className="space-y-6">
       <PatientSearch
+        key={resetKey}
         onSelectPatient={handleSelectPatient}
         onResults={handleResults}
         patients={patients}

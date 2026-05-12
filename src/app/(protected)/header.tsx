@@ -2,12 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { ThemeToggle } from "@/lib/theme";
 
+export const HOME_RESET_EVENT = "biodesign:home-reset";
+
 export default function Header({ labName }: { labName: string }) {
   const router = useRouter();
+  const pathname = usePathname();
 
   async function handleSignOut() {
     const supabase = createClient();
@@ -16,11 +19,20 @@ export default function Header({ labName }: { labName: string }) {
     router.refresh();
   }
 
+  function handleLogoClick(e: React.MouseEvent) {
+    // If already on home, dispatch event to reset state (Link won't re-render)
+    if (pathname === "/") {
+      e.preventDefault();
+      window.dispatchEvent(new Event(HOME_RESET_EVENT));
+    }
+  }
+
   return (
     <header className="sticky top-0 z-10 border-b border-border bg-bg-header backdrop-blur-sm">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
         <Link
           href="/"
+          onClick={handleLogoClick}
           className="flex items-center gap-3 rounded-lg -mx-1 px-1 hover:opacity-80 transition-opacity"
           aria-label="Ir al inicio"
         >
