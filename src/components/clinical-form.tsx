@@ -1,0 +1,279 @@
+"use client";
+
+import { useState, type FormEvent } from "react";
+import ImageUploadField from "@/components/image-upload-field";
+import { Spinner } from "@/components/ui/spinner";
+import type { ClinicalForm as ClinicalFormType } from "@/lib/types";
+
+const REASONS = [
+  { key: "reason_aesthetics", label: "Estética" },
+  { key: "reason_bite", label: "Mordida" },
+  { key: "reason_crowding", label: "Apiñamiento" },
+  { key: "reason_spacing", label: "Separación dental" },
+  { key: "reason_ortho_relapse", label: "Recaída ortodoncia previa" },
+] as const;
+
+const DIAGNOSIS_CLASS = [
+  { key: "diagnosis_class_1", label: "Clase 1" },
+  { key: "diagnosis_class_2", label: "Clase 2" },
+  { key: "diagnosis_class_3", label: "Clase 3" },
+] as const;
+
+const DIAGNOSIS_CROWDING = [
+  { key: "diagnosis_crowding_mild", label: "Leve" },
+  { key: "diagnosis_crowding_moderate", label: "Moderado" },
+  { key: "diagnosis_crowding_severe", label: "Severo" },
+] as const;
+
+const DIAGNOSIS_OTHER = [
+  { key: "diagnosis_diastemas", label: "Diastemas" },
+  { key: "diagnosis_open_bite", label: "Mordida abierta" },
+  { key: "diagnosis_crossbite", label: "Mordida cruzada" },
+  { key: "diagnosis_deep_bite", label: "Sobremordida aumentada" },
+] as const;
+
+type BoolKey = (typeof REASONS)[number]["key"]
+  | (typeof DIAGNOSIS_CLASS)[number]["key"]
+  | (typeof DIAGNOSIS_CROWDING)[number]["key"]
+  | (typeof DIAGNOSIS_OTHER)[number]["key"];
+
+export interface ClinicalFormData {
+  photoProfile: File | null;
+  photoFront: File | null;
+  xrayImage: File | null;
+  notes: string;
+  checkboxes: Record<BoolKey, boolean>;
+}
+
+interface ClinicalFormProps {
+  readOnly: boolean;
+  existingData?: ClinicalFormType | null;
+  existingImageUrls?: {
+    profile: string | null;
+    front: string | null;
+    xray: string | null;
+  };
+  loading: boolean;
+  error: string;
+  onSubmit: (data: ClinicalFormData) => void;
+  onCancel: () => void;
+}
+
+function defaultCheckboxes(): Record<BoolKey, boolean> {
+  const obj: Record<string, boolean> = {};
+  [...REASONS, ...DIAGNOSIS_CLASS, ...DIAGNOSIS_CROWDING, ...DIAGNOSIS_OTHER].forEach(
+    (item) => {
+      obj[item.key] = false;
+    }
+  );
+  return obj as Record<BoolKey, boolean>;
+}
+
+function checkboxesFromData(data: ClinicalFormType): Record<BoolKey, boolean> {
+  const obj: Record<string, boolean> = {};
+  [...REASONS, ...DIAGNOSIS_CLASS, ...DIAGNOSIS_CROWDING, ...DIAGNOSIS_OTHER].forEach(
+    (item) => {
+      obj[item.key] = !!(data as unknown as Record<string, unknown>)[item.key];
+    }
+  );
+  return obj as Record<BoolKey, boolean>;
+}
+
+export default function ClinicalForm({
+  readOnly,
+  existingData,
+  existingImageUrls,
+  loading,
+  error,
+  onSubmit,
+  onCancel,
+}: ClinicalFormProps) {
+  const [photoProfile, setPhotoProfile] = useState<File | null>(null);
+  const [photoFront, setPhotoFront] = useState<File | null>(null);
+  const [xrayImage, setXrayImage] = useState<File | null>(null);
+  const [notes, setNotes] = useState(existingData?.notes ?? "");
+  const [checkboxes, setCheckboxes] = useState<Record<BoolKey, boolean>>(
+    existingData ? checkboxesFromData(existingData) : defaultCheckboxes()
+  );
+  const [validationError, setValidationError] = useState("");
+
+  function toggleCheckbox(key: BoolKey) {
+    if (readOnly) return;
+    setCheckboxes((prev) => ({ ...prev, [key]: !prev[key] }));
+  }
+
+  function handleSubmit(e: FormEvent) {
+    e.preventDefault();
+    setValidationError("");
+
+    const hasImage = photoProfile || photoFront || xrayImage;
+    const hasNotes = notes.trim().length > 0;
+    const hasCheckbox = Object.values(checkboxes).some(Boolean);
+
+    if (!hasImage && !hasNotes && !hasCheckbox) {
+      setValidationError(
+        "El formulario no puede estar completamente vacío. Completá al menos un campo."
+      );
+      return;
+    }
+
+    onSubmit({ photoProfile, photoFront, xrayImage, notes, checkboxes });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {/* Images */}
+      <div>
+        <h3 className="mb-3 text-sm font-semibold text-text-primary">
+          Imágenes
+        </h3>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <ImageUploadField
+            label="Foto de perfil"
+
+            existingUrl={existingImageUrls?.profile ?? null}
+            readOnly={readOnly}
+            onChange={setPhotoProfile}
+          />
+          <ImageUploadField
+            label="Foto de frente"
+
+            existingUrl={existingImageUrls?.front ?? null}
+            readOnly={readOnly}
+            onChange={setPhotoFront}
+          />
+          <ImageUploadField
+            label="Radiografía"
+
+            existingUrl={existingImageUrls?.xray ?? null}
+            readOnly={readOnly}
+            onChange={setXrayImage}
+          />
+        </div>
+      </div>
+
+      {/* Notes */}
+      <div>
+        <label
+          htmlFor="clinical-notes"
+          className="block text-sm font-semibold text-text-primary"
+        >
+          Notas
+        </label>
+        <textarea
+          id="clinical-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          disabled={readOnly}
+          rows={3}
+          className="mt-1.5 block w-full rounded-lg border border-border bg-input-bg px-3 py-2 text-sm text-text-primary placeholder-input-placeholder focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none disabled:opacity-60"
+          placeholder={readOnly ? "" : "Observaciones clínicas..."}
+        />
+      </div>
+
+      {/* Reason checkboxes */}
+      <CheckboxGroup
+        title="Motivo de consulta"
+        items={REASONS}
+        values={checkboxes}
+        readOnly={readOnly}
+        onToggle={toggleCheckbox}
+      />
+
+      {/* Diagnosis: class */}
+      <CheckboxGroup
+        title="Diagnóstico — Clase"
+        items={DIAGNOSIS_CLASS}
+        values={checkboxes}
+        readOnly={readOnly}
+        onToggle={toggleCheckbox}
+      />
+
+      {/* Diagnosis: crowding */}
+      <CheckboxGroup
+        title="Diagnóstico — Apiñamiento"
+        items={DIAGNOSIS_CROWDING}
+        values={checkboxes}
+        readOnly={readOnly}
+        onToggle={toggleCheckbox}
+      />
+
+      {/* Diagnosis: other */}
+      <CheckboxGroup
+        title="Diagnóstico — Otros hallazgos"
+        items={DIAGNOSIS_OTHER}
+        values={checkboxes}
+        readOnly={readOnly}
+        onToggle={toggleCheckbox}
+      />
+
+      {/* Errors */}
+      {(validationError || error) && (
+        <div className="rounded-lg bg-error-bg px-3 py-2 text-sm text-error-text">
+          {validationError || error}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div className="flex items-center gap-3">
+        {!readOnly && (
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            {loading && <Spinner />}
+            {loading ? "Guardando..." : "Guardar formulario"}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onCancel}
+          className="rounded-lg border border-border px-5 py-2.5 text-sm text-text-secondary hover:bg-surface-hover transition-colors"
+        >
+          Volver
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CheckboxGroup({
+  title,
+  items,
+  values,
+  readOnly,
+  onToggle,
+}: {
+  title: string;
+  items: ReadonlyArray<{ key: BoolKey; label: string }>;
+  values: Record<BoolKey, boolean>;
+  readOnly: boolean;
+  onToggle: (key: BoolKey) => void;
+}) {
+  return (
+    <div>
+      <h3 className="mb-2 text-sm font-semibold text-text-primary">{title}</h3>
+      <div className="flex flex-wrap gap-2">
+        {items.map((item) => {
+          const checked = values[item.key];
+          return (
+            <button
+              key={item.key}
+              type="button"
+              disabled={readOnly}
+              onClick={() => onToggle(item.key)}
+              className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                checked
+                  ? "border-blue-500 bg-blue-600/20 text-blue-400 font-medium"
+                  : "border-border bg-surface text-text-secondary hover:bg-surface-hover"
+              } ${readOnly ? "cursor-default opacity-80" : "cursor-pointer"}`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
