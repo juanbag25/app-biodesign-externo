@@ -52,7 +52,7 @@ export default function ImageUploadField({
             width={300}
             height={200}
             className="w-full h-48 object-cover"
-            unoptimized={!!preview}
+            unoptimized
           />
           {!readOnly && (
             <button
