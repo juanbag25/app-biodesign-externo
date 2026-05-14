@@ -60,3 +60,17 @@ export interface ClinicalForm {
 export interface ScanWithForm extends Scan {
   has_clinical_form: boolean;
 }
+
+export interface ReprintAligner {
+  arch: "upper" | "lower";
+  number: number;
+}
+
+export interface ReprintRequest {
+  id: number;
+  scan_id: number;
+  aligners: ReprintAligner[];
+  status: "pending" | "completed";
+  requested_at: string;
+  completed_at: string | null;
+}

@@ -4,6 +4,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner, CheckIcon } from "@/components/ui/spinner";
+import ReprintRequestModal from "@/components/reprint-request-modal";
+import ReprintRequestsList from "@/components/reprint-requests-list";
 import type { Patient, ScanWithForm } from "@/lib/types";
 
 interface ScanSectionProps {
@@ -21,6 +23,9 @@ export default function ScanSection({ patient }: ScanSectionProps) {
   const [savingField, setSavingField] = useState<string | null>(null);
   const [savedField, setSavedField] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+
+  const [reprintModalOpen, setReprintModalOpen] = useState(false);
+  const [reprintRefreshKey, setReprintRefreshKey] = useState(0);
 
   useEffect(() => {
     loadScans();
@@ -114,8 +119,8 @@ export default function ScanSection({ patient }: ScanSectionProps) {
 
   return (
     <div className="space-y-4">
-      {/* Action button: Escanear / Reescanear */}
-      <div className="flex items-center gap-3">
+      {/* Action buttons */}
+      <div className="flex flex-wrap items-center gap-3">
         <button
           onClick={() =>
             router.push(
@@ -150,6 +155,21 @@ export default function ScanSection({ patient }: ScanSectionProps) {
             className="rounded-lg border border-border px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover transition-colors"
           >
             Ver formulario
+          </button>
+        )}
+
+        {selectedScan && (
+          <button
+            onClick={() => setReprintModalOpen(true)}
+            disabled={!scanHasAligners(selectedScan)}
+            title={
+              scanHasAligners(selectedScan)
+                ? undefined
+                : "El escaneo todavía no tiene alineadores"
+            }
+            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-950/20 active:bg-blue-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Solicitar reimpresión
           </button>
         )}
       </div>
@@ -230,9 +250,34 @@ export default function ScanSection({ patient }: ScanSectionProps) {
               )}
             </div>
           )}
+
+          {/* Reprint requests list */}
+          {selectedScan && (
+            <ReprintRequestsList
+              scanId={selectedScan.id}
+              refreshKey={reprintRefreshKey}
+            />
+          )}
         </>
       )}
+
+      {/* Reprint request modal */}
+      {selectedScan && (
+        <ReprintRequestModal
+          scan={selectedScan}
+          open={reprintModalOpen}
+          onClose={() => setReprintModalOpen(false)}
+          onCreated={() => setReprintRefreshKey((k) => k + 1)}
+        />
+      )}
     </div>
+  );
+}
+
+function scanHasAligners(scan: ScanWithForm): boolean {
+  return (
+    (scan.upper_aligners_count ?? 0) > 0 ||
+    (scan.lower_aligners_count ?? 0) > 0
   );
 }
 
