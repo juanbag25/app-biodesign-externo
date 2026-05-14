@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner } from "@/components/ui/spinner";
 import { formatAligners } from "@/lib/reprint-utils";
@@ -36,7 +36,7 @@ export default function ReprintRequestsList({
     text: string;
   } | null>(null);
 
-  const load = useCallback(async () => {
+  async function load() {
     setLoading(true);
     const { data } = await supabase
       .from("reprint_requests")
@@ -46,13 +46,14 @@ export default function ReprintRequestsList({
 
     setRequests((data ?? []) as ReprintRequest[]);
     setLoading(false);
-  }, [supabase, scanId]);
+  }
 
   useEffect(() => {
     setConfirmingId(null);
     setNotice(null);
     load();
-  }, [load, refreshKey]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scanId, refreshKey]);
 
   async function handleCancel(id: number) {
     setCancelingId(id);
