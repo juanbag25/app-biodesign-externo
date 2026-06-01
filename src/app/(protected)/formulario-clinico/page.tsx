@@ -3,9 +3,25 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import ClinicalForm, { type ClinicalFormData } from "@/components/clinical-form";
+import ClinicalForm, {
+  type ClinicalFormData,
+  type PhotoUrls,
+} from "@/components/clinical-form";
 import { Spinner } from "@/components/ui/spinner";
-import type { ClinicalForm as ClinicalFormType, Patient } from "@/lib/types";
+import {
+  PHOTO_KEYS,
+  type ClinicalForm as ClinicalFormType,
+  type Patient,
+  type PhotoKey,
+} from "@/lib/types";
+
+function emptyUrls(): PhotoUrls {
+  const obj: Record<string, string | null> = {};
+  PHOTO_KEYS.forEach((k) => {
+    obj[k] = null;
+  });
+  return obj as PhotoUrls;
+}
 
 export default function ClinicalFormPage() {
   const searchParams = useSearchParams();
@@ -23,11 +39,9 @@ export default function ClinicalFormPage() {
   const [existingForm, setExistingForm] = useState<ClinicalFormType | null>(
     null
   );
-  const [existingImageUrls, setExistingImageUrls] = useState<{
-    profile: string | null;
-    front: string | null;
-    xray: string | null;
-  }>({ profile: null, front: null, xray: null });
+  const [existingImageUrls, setExistingImageUrls] = useState<PhotoUrls>(
+    emptyUrls()
+  );
   const [pageLoading, setPageLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,20 +73,20 @@ export default function ClinicalFormPage() {
         const form = formData as ClinicalFormType;
         setExistingForm(form);
 
-        // Get signed URLs for images
-        const urls = { profile: null as string | null, front: null as string | null, xray: null as string | null };
-        for (const [key, path] of Object.entries({
-          profile: form.photo_profile,
-          front: form.photo_front,
-          xray: form.xray_image,
-        })) {
-          if (path) {
+        // Get signed URLs for all 9 photo fields
+        const urls = emptyUrls();
+        await Promise.all(
+          PHOTO_KEYS.map(async (key) => {
+            const path = (form as unknown as Record<string, string | null>)[
+              key
+            ];
+            if (!path) return;
             const { data } = await supabase.storage
               .from("clinical-images")
               .createSignedUrl(path, 3600);
-            if (data) urls[key as keyof typeof urls] = data.signedUrl;
-          }
-        }
+            if (data) urls[key] = data.signedUrl;
+          })
+        );
         setExistingImageUrls(urls);
       }
     }
@@ -84,7 +98,7 @@ export default function ClinicalFormPage() {
     file: File,
     patId: number,
     scId: number,
-    tipo: string
+    tipo: PhotoKey
   ): Promise<string | null> {
     const ext = file.name.split(".").pop() ?? "jpg";
     const path = `${patId}/${scId}/${tipo}.${ext}`;
@@ -108,7 +122,6 @@ export default function ClinicalFormPage() {
 
     // Step 1: Create scan if mode=new
     if (isNew) {
-      // Get next scan number via RPC
       const { data: nextNum, error: rpcError } = await supabase.rpc(
         "get_next_scan_number",
         { p_patient_id: patientId }
@@ -145,29 +158,26 @@ export default function ClinicalFormPage() {
       return;
     }
 
-    // Step 2: Upload images in parallel
-    const [profilePath, frontPath, xrayPath] = await Promise.all([
-      data.photoProfile
-        ? uploadImage(data.photoProfile, patientId, targetScanId, "profile")
-        : Promise.resolve(null),
-      data.photoFront
-        ? uploadImage(data.photoFront, patientId, targetScanId, "front")
-        : Promise.resolve(null),
-      data.xrayImage
-        ? uploadImage(data.xrayImage, patientId, targetScanId, "xray")
-        : Promise.resolve(null),
-    ]);
+    // Step 2: Upload all photos in parallel
+    const uploadEntries = await Promise.all(
+      PHOTO_KEYS.map(async (key) => {
+        const file = data.photos[key];
+        if (!file) return [key, null] as const;
+        const path = await uploadImage(file, patientId, targetScanId!, key);
+        return [key, path] as const;
+      })
+    );
 
     // Step 3: Create clinical_form
     const formPayload: Record<string, unknown> = {
       scan_id: targetScanId,
       notes: data.notes.trim() || null,
-      photo_profile: profilePath,
-      photo_front: frontPath,
-      xray_image: xrayPath,
     };
 
-    // Add checkbox values
+    for (const [key, path] of uploadEntries) {
+      formPayload[key] = path;
+    }
+
     for (const [key, value] of Object.entries(data.checkboxes)) {
       formPayload[key] = value;
     }

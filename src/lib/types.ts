@@ -22,7 +22,9 @@ export interface Scan {
   case_number: string | null;
   lab_name: string | null;
   download_date: string | null;
-  origin: "csv" | "desktop" | "web";
+  origin: "csv" | "desktop" | "web" | "migration";
+  phase: number | null;
+  is_phase_start: boolean;
   upper_aligners_count: number | null;
   lower_aligners_count: number | null;
   upper_stage: number;
@@ -30,12 +32,31 @@ export interface Scan {
   created_at: string;
 }
 
+export const PHOTO_KEYS = [
+  "face_front",
+  "face_left",
+  "face_right",
+  "smile_front",
+  "smile_left",
+  "smile_right",
+  "xray_front",
+  "xray_left",
+  "xray_right",
+] as const;
+export type PhotoKey = (typeof PHOTO_KEYS)[number];
+
 export interface ClinicalForm {
   id: number;
   scan_id: number;
-  photo_profile: string | null;
-  photo_front: string | null;
-  xray_image: string | null;
+  face_front: string | null;
+  face_left: string | null;
+  face_right: string | null;
+  smile_front: string | null;
+  smile_left: string | null;
+  smile_right: string | null;
+  xray_front: string | null;
+  xray_left: string | null;
+  xray_right: string | null;
   notes: string | null;
   reason_aesthetics: boolean;
   reason_bite: boolean;

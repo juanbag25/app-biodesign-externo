@@ -3,7 +3,37 @@
 import { useState, type FormEvent } from "react";
 import ImageUploadField from "@/components/image-upload-field";
 import { Spinner } from "@/components/ui/spinner";
-import type { ClinicalForm as ClinicalFormType } from "@/lib/types";
+import { PHOTO_KEYS, type ClinicalForm as ClinicalFormType, type PhotoKey } from "@/lib/types";
+
+const PHOTO_SECTIONS = [
+  {
+    title: "Cara",
+    description: "Paciente sin sonreír",
+    fields: [
+      { key: "face_front", label: "Frente" },
+      { key: "face_left", label: "Perfil izquierdo" },
+      { key: "face_right", label: "Perfil derecho" },
+    ],
+  },
+  {
+    title: "Sonrisa",
+    description: null,
+    fields: [
+      { key: "smile_front", label: "Frente" },
+      { key: "smile_left", label: "Perfil izquierdo" },
+      { key: "smile_right", label: "Perfil derecho" },
+    ],
+  },
+  {
+    title: "Radiografía",
+    description: null,
+    fields: [
+      { key: "xray_front", label: "Frente" },
+      { key: "xray_left", label: "Perfil izquierdo" },
+      { key: "xray_right", label: "Perfil derecho" },
+    ],
+  },
+] as const;
 
 const REASONS = [
   { key: "reason_aesthetics", label: "Estética" },
@@ -37,10 +67,11 @@ type BoolKey = (typeof REASONS)[number]["key"]
   | (typeof DIAGNOSIS_CROWDING)[number]["key"]
   | (typeof DIAGNOSIS_OTHER)[number]["key"];
 
+export type PhotoFiles = Record<PhotoKey, File | null>;
+export type PhotoUrls = Record<PhotoKey, string | null>;
+
 export interface ClinicalFormData {
-  photoProfile: File | null;
-  photoFront: File | null;
-  xrayImage: File | null;
+  photos: PhotoFiles;
   notes: string;
   checkboxes: Record<BoolKey, boolean>;
 }
@@ -48,15 +79,27 @@ export interface ClinicalFormData {
 interface ClinicalFormProps {
   readOnly: boolean;
   existingData?: ClinicalFormType | null;
-  existingImageUrls?: {
-    profile: string | null;
-    front: string | null;
-    xray: string | null;
-  };
+  existingImageUrls?: PhotoUrls;
   loading: boolean;
   error: string;
   onSubmit: (data: ClinicalFormData) => void;
   onCancel: () => void;
+}
+
+function emptyPhotos(): PhotoFiles {
+  const obj: Record<string, File | null> = {};
+  PHOTO_KEYS.forEach((k) => {
+    obj[k] = null;
+  });
+  return obj as PhotoFiles;
+}
+
+function emptyUrls(): PhotoUrls {
+  const obj: Record<string, string | null> = {};
+  PHOTO_KEYS.forEach((k) => {
+    obj[k] = null;
+  });
+  return obj as PhotoUrls;
 }
 
 function defaultCheckboxes(): Record<BoolKey, boolean> {
@@ -88,14 +131,18 @@ export default function ClinicalForm({
   onSubmit,
   onCancel,
 }: ClinicalFormProps) {
-  const [photoProfile, setPhotoProfile] = useState<File | null>(null);
-  const [photoFront, setPhotoFront] = useState<File | null>(null);
-  const [xrayImage, setXrayImage] = useState<File | null>(null);
+  const [photos, setPhotos] = useState<PhotoFiles>(emptyPhotos);
   const [notes, setNotes] = useState(existingData?.notes ?? "");
   const [checkboxes, setCheckboxes] = useState<Record<BoolKey, boolean>>(
     existingData ? checkboxesFromData(existingData) : defaultCheckboxes()
   );
   const [validationError, setValidationError] = useState("");
+
+  const urls: PhotoUrls = existingImageUrls ?? emptyUrls();
+
+  function setPhoto(key: PhotoKey, file: File | null) {
+    setPhotos((prev) => ({ ...prev, [key]: file }));
+  }
 
   function toggleCheckbox(key: BoolKey) {
     if (readOnly) return;
@@ -106,7 +153,7 @@ export default function ClinicalForm({
     e.preventDefault();
     setValidationError("");
 
-    const hasImage = photoProfile || photoFront || xrayImage;
+    const hasImage = Object.values(photos).some(Boolean);
     const hasNotes = notes.trim().length > 0;
     const hasCheckbox = Object.values(checkboxes).some(Boolean);
 
@@ -117,40 +164,35 @@ export default function ClinicalForm({
       return;
     }
 
-    onSubmit({ photoProfile, photoFront, xrayImage, notes, checkboxes });
+    onSubmit({ photos, notes, checkboxes });
   }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
-      {/* Images */}
-      <div>
-        <h3 className="mb-3 text-sm font-semibold text-text-primary">
-          Imágenes
-        </h3>
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <ImageUploadField
-            label="Foto de perfil"
-
-            existingUrl={existingImageUrls?.profile ?? null}
-            readOnly={readOnly}
-            onChange={setPhotoProfile}
-          />
-          <ImageUploadField
-            label="Foto de frente"
-
-            existingUrl={existingImageUrls?.front ?? null}
-            readOnly={readOnly}
-            onChange={setPhotoFront}
-          />
-          <ImageUploadField
-            label="Radiografía"
-
-            existingUrl={existingImageUrls?.xray ?? null}
-            readOnly={readOnly}
-            onChange={setXrayImage}
-          />
+      {/* Photo sections */}
+      {PHOTO_SECTIONS.map((section) => (
+        <div key={section.title}>
+          <div className="mb-3">
+            <h3 className="text-sm font-semibold text-text-primary">
+              {section.title}
+            </h3>
+            {section.description && (
+              <p className="text-xs text-text-muted">{section.description}</p>
+            )}
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            {section.fields.map((field) => (
+              <ImageUploadField
+                key={field.key}
+                label={field.label}
+                existingUrl={urls[field.key as PhotoKey]}
+                readOnly={readOnly}
+                onChange={(file) => setPhoto(field.key as PhotoKey, file)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      ))}
 
       {/* Notes */}
       <div>

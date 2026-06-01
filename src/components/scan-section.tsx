@@ -40,7 +40,7 @@ export default function ScanSection({ patient }: ScanSectionProps) {
     const { data: scanData } = await supabase
       .from("scans")
       .select(
-        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, created_at"
+        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, phase, is_phase_start, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, created_at"
       )
       .eq("patient_id", patient.id)
       .order("scan_number", { ascending: false });
@@ -198,7 +198,7 @@ export default function ScanSection({ patient }: ScanSectionProps) {
             >
               {scans.map((s) => (
                 <option key={s.id} value={s.id}>
-                  Escaneo {s.scan_number}
+                  {formatScanLabel(s)}
                 </option>
               ))}
             </select>
@@ -279,6 +279,13 @@ function scanHasAligners(scan: ScanWithForm): boolean {
     (scan.upper_aligners_count ?? 0) > 0 ||
     (scan.lower_aligners_count ?? 0) > 0
   );
+}
+
+function formatScanLabel(scan: ScanWithForm): string {
+  if (scan.phase != null) {
+    return `Escaneo ${scan.scan_number} (fase ${scan.phase})`;
+  }
+  return `Escaneo ${scan.scan_number}`;
 }
 
 function AlignerCount({
