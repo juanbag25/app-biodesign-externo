@@ -48,10 +48,12 @@ export default function ReprintRequestModal({
     }
   }, [open]);
 
+  // Files on disk are 0-indexed (maxilla_0..maxilla_N-1, mandible_0..mandible_N-1).
+  // count is the TOTAL number of files; valid aligner indices are 0..count-1.
   const upperCount = scan.upper_aligners_count ?? 0;
   const lowerCount = scan.lower_aligners_count ?? 0;
-  const upperNumbers = Array.from({ length: upperCount }, (_, i) => i + 1);
-  const lowerNumbers = Array.from({ length: lowerCount }, (_, i) => i + 1);
+  const upperNumbers = Array.from({ length: upperCount }, (_, i) => i);
+  const lowerNumbers = Array.from({ length: lowerCount }, (_, i) => i);
 
   function toggle(arch: "upper" | "lower", number: number) {
     const key = keyOf(arch, number);

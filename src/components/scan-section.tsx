@@ -298,6 +298,9 @@ function AlignerCount({
   stage: number;
 }) {
   const pending = count === null;
+  // Files on disk are 0-indexed (maxilla_0..maxilla_N-1), so the last
+  // aligner index is count - 1. count is the total number of files.
+  const lastIndex = count !== null ? count - 1 : null;
 
   return (
     <div className="px-4 py-4 sm:px-5">
@@ -308,25 +311,27 @@ function AlignerCount({
         <p className="mt-1 text-sm italic text-text-muted">
           Pendiente de alineación
         </p>
+      ) : lastIndex === null || lastIndex < 0 ? (
+        <p className="mt-1 text-sm italic text-text-muted">Sin alineadores</p>
       ) : (
         <>
           <p className="mt-1 text-2xl font-bold tabular-nums text-text-primary">
-            {count}
+            {lastIndex}
           </p>
           <div className="mt-2">
             <div className="flex items-center justify-between text-xs text-text-muted">
               <span>
-                Etapa {stage}/{count}
+                Etapa {stage}/{lastIndex}
               </span>
               <span>
-                {count > 0 ? Math.round((stage / count) * 100) : 0}%
+                {lastIndex > 0 ? Math.round((stage / lastIndex) * 100) : 0}%
               </span>
             </div>
             <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-progress-bg">
               <div
                 className="h-full rounded-full bg-blue-500 transition-all duration-300"
                 style={{
-                  width: `${count > 0 ? (stage / count) * 100 : 0}%`,
+                  width: `${lastIndex > 0 ? (stage / lastIndex) * 100 : 0}%`,
                 }}
               />
             </div>
@@ -354,10 +359,16 @@ function StageDropdown({
   saved: boolean;
   onChange: (value: number) => void;
 }) {
-  const disabled = max === null;
+  // max here is upper_aligners_count / lower_aligners_count (the COUNT of
+  // files on disk). Aligners are 0-indexed (maxilla_0..maxilla_N-1), so the
+  // valid stage range is 0..(count-1). count===null → pending; count<=0 →
+  // no aligners.
+  const pending = max === null;
+  const noAligners = !pending && (max ?? 0) <= 0;
+  const disabled = pending || noAligners;
   const options = disabled
     ? []
-    : Array.from({ length: max + 1 }, (_, i) => i);
+    : Array.from({ length: max! }, (_, i) => i);
 
   return (
     <div>
@@ -367,10 +378,12 @@ function StageDropdown({
       >
         {label}
       </label>
-      {disabled ? (
+      {pending ? (
         <p className="mt-1.5 text-sm italic text-text-muted">
           Pendiente de alineación
         </p>
+      ) : noAligners ? (
+        <p className="mt-1.5 text-sm italic text-text-muted">Sin alineadores</p>
       ) : (
         <div className="mt-1.5 flex items-center gap-2">
           <select
