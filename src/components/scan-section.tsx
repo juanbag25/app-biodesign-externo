@@ -129,7 +129,9 @@ export default function ScanSection({ patient }: ScanSectionProps) {
           }
           className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 active:bg-blue-700 transition-colors"
         >
-          {scans.length === 0 ? "Escanear" : "Reescanear"}
+          {scans.length === 0
+            ? "Escaneo / formulario"
+            : "Nuevo escaneo / Nuevo formulario"}
         </button>
 
         {selectedScan && !selectedScan.has_clinical_form && (
