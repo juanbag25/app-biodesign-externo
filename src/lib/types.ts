@@ -15,6 +15,8 @@ export interface Patient {
   created_at: string;
 }
 
+export type ScannerType = "shining" | "medit";
+
 export interface Scan {
   id: number;
   patient_id: number;
@@ -23,6 +25,7 @@ export interface Scan {
   lab_name: string | null;
   download_date: string | null;
   origin: "csv" | "desktop" | "web" | "migration";
+  scanner: ScannerType | null;
   phase: number | null;
   is_phase_start: boolean;
   upper_aligners_count: number | null;

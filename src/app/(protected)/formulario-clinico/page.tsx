@@ -13,6 +13,7 @@ import {
   type ClinicalForm as ClinicalFormType,
   type Patient,
   type PhotoKey,
+  type ScannerType,
 } from "@/lib/types";
 
 function emptyUrls(): PhotoUrls {
@@ -45,6 +46,7 @@ export default function ClinicalFormPage() {
   const [pageLoading, setPageLoading] = useState(true);
   const [submitLoading, setSubmitLoading] = useState(false);
   const [error, setError] = useState("");
+  const [defaultScanner, setDefaultScanner] = useState<ScannerType | null>(null);
 
   useEffect(() => {
     loadData();
@@ -88,6 +90,23 @@ export default function ClinicalFormPage() {
           })
         );
         setExistingImageUrls(urls);
+      }
+    }
+
+    // For a new scan, pre-select the scanner used in the lab's most recent
+    // scan (RLS scopes this to the logged-in lab's own scans). null = no
+    // history → the dentist must choose before submitting.
+    if (isNew) {
+      const { data: lastScan } = await supabase
+        .from("scans")
+        .select("scanner")
+        .not("scanner", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lastScan?.scanner) {
+        setDefaultScanner(lastScan.scanner as ScannerType);
       }
     }
 
@@ -139,6 +158,7 @@ export default function ClinicalFormPage() {
           patient_id: patientId,
           scan_number: nextNum,
           origin: "web",
+          scanner: data.scanner,
         })
         .select("id")
         .single();
@@ -237,6 +257,8 @@ export default function ClinicalFormPage() {
         existingImageUrls={existingImageUrls}
         loading={submitLoading}
         error={error}
+        showScanner={isNew}
+        defaultScanner={defaultScanner}
         onSubmit={handleSubmit}
         onCancel={() => router.push("/")}
       />
