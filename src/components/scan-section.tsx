@@ -6,7 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { Spinner, CheckIcon } from "@/components/ui/spinner";
 import ReprintRequestModal from "@/components/reprint-request-modal";
 import ReprintRequestsList from "@/components/reprint-requests-list";
-import type { Patient, ScanWithForm } from "@/lib/types";
+import RetentionRequestModal from "@/components/retention-request-modal";
+import FinalizeTreatmentModal from "@/components/finalize-treatment-modal";
+import Modal from "@/components/ui/modal";
+import type { Patient, ScanWithForm, TreatmentStatus } from "@/lib/types";
 
 interface ScanSectionProps {
   patient: Patient;
@@ -27,6 +30,16 @@ export default function ScanSection({ patient }: ScanSectionProps) {
   const [reprintModalOpen, setReprintModalOpen] = useState(false);
   const [reprintRefreshKey, setReprintRefreshKey] = useState(0);
 
+  const [retentionModalOpen, setRetentionModalOpen] = useState(false);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [finalizeFromRetention, setFinalizeFromRetention] = useState(false);
+  const [reopenOpen, setReopenOpen] = useState(false);
+  const [reopenSubmitting, setReopenSubmitting] = useState(false);
+  const [reopenError, setReopenError] = useState("");
+  const [treatmentStatus, setTreatmentStatus] = useState<TreatmentStatus>(
+    patient.treatment_status
+  );
+
   useEffect(() => {
     loadScans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -40,7 +53,7 @@ export default function ScanSection({ patient }: ScanSectionProps) {
     const { data: scanData } = await supabase
       .from("scans")
       .select(
-        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, phase, is_phase_start, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, created_at"
+        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, phase, is_phase_start, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, scan_type, retention_mode, retention_source_aligner, retention_status, retention_completed_at, created_at"
       )
       .eq("patient_id", patient.id)
       .order("scan_number", { ascending: false });
@@ -59,6 +72,16 @@ export default function ScanSection({ patient }: ScanSectionProps) {
       scanList.forEach((s) => {
         s.has_clinical_form = formScanIds.has(s.id);
       });
+    }
+
+    // Refresh treatment status (authoritative; not from the possibly-stale prop)
+    const { data: patientRow } = await supabase
+      .from("patients")
+      .select("treatment_status")
+      .eq("id", patient.id)
+      .single();
+    if (patientRow) {
+      setTreatmentStatus(patientRow.treatment_status as TreatmentStatus);
     }
 
     setScans(scanList);
@@ -108,6 +131,39 @@ export default function ScanSection({ patient }: ScanSectionProps) {
     }
   }
 
+  function handleRetentionCreated() {
+    setRetentionModalOpen(false);
+    setFinalizeFromRetention(true);
+    setFinalizeOpen(true);
+  }
+
+  function handleFinalizeResolved(closed: boolean) {
+    setFinalizeOpen(false);
+    if (closed) setTreatmentStatus("closed");
+    // Refresh so a just-created Modo B retention shows in the dropdown.
+    loadScans();
+  }
+
+  async function handleReopen() {
+    setReopenSubmitting(true);
+    setReopenError("");
+
+    const { error } = await supabase
+      .from("patients")
+      .update({ treatment_status: "active" })
+      .eq("id", patient.id);
+
+    setReopenSubmitting(false);
+
+    if (error) {
+      setReopenError("Error al reabrir el tratamiento. Intentá de nuevo.");
+      return;
+    }
+
+    setTreatmentStatus("active");
+    setReopenOpen(false);
+  }
+
   if (loading) {
     return (
       <div className="flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-8 justify-center">
@@ -119,6 +175,40 @@ export default function ScanSection({ patient }: ScanSectionProps) {
 
   return (
     <div className="space-y-4">
+      {/* Treatment status */}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-surface px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-text-secondary">Tratamiento:</span>
+          <span
+            className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+              treatmentStatus === "active"
+                ? "bg-success-bg text-success-text"
+                : "bg-surface-hover text-text-secondary"
+            }`}
+          >
+            {treatmentStatus === "active" ? "Activo" : "Cerrado"}
+          </span>
+        </div>
+        {treatmentStatus === "active" ? (
+          <button
+            onClick={() => {
+              setFinalizeFromRetention(false);
+              setFinalizeOpen(true);
+            }}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover transition-colors"
+          >
+            Finalizar tratamiento
+          </button>
+        ) : (
+          <button
+            onClick={() => setReopenOpen(true)}
+            className="rounded-lg border border-border px-3 py-1.5 text-sm text-text-secondary hover:bg-surface-hover transition-colors"
+          >
+            Reabrir tratamiento
+          </button>
+        )}
+      </div>
+
       {/* Action buttons */}
       <div className="flex flex-wrap items-center gap-3">
         <button
@@ -134,18 +224,20 @@ export default function ScanSection({ patient }: ScanSectionProps) {
             : "Nuevo escaneo / Nuevo formulario"}
         </button>
 
-        {selectedScan && !selectedScan.has_clinical_form && (
-          <button
-            onClick={() =>
-              router.push(
-                `/formulario-clinico?patient_id=${patient.id}&scan_id=${selectedScan.id}`
-              )
-            }
-            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-950/20 active:bg-blue-950/30 transition-colors"
-          >
-            Completar formulario
-          </button>
-        )}
+        {selectedScan &&
+          selectedScan.scan_type !== "retention" &&
+          !selectedScan.has_clinical_form && (
+            <button
+              onClick={() =>
+                router.push(
+                  `/formulario-clinico?patient_id=${patient.id}&scan_id=${selectedScan.id}`
+                )
+              }
+              className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-950/20 active:bg-blue-950/30 transition-colors"
+            >
+              Completar formulario
+            </button>
+          )}
 
         {selectedScan && selectedScan.has_clinical_form && (
           <button
@@ -160,7 +252,7 @@ export default function ScanSection({ patient }: ScanSectionProps) {
           </button>
         )}
 
-        {selectedScan && (
+        {selectedScan && selectedScan.scan_type !== "retention" && (
           <button
             onClick={() => setReprintModalOpen(true)}
             disabled={!scanHasAligners(selectedScan)}
@@ -172,6 +264,21 @@ export default function ScanSection({ patient }: ScanSectionProps) {
             className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-950/20 active:bg-blue-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             Solicitar reimpresión
+          </button>
+        )}
+
+        {selectedScan && selectedScan.scan_type !== "retention" && (
+          <button
+            onClick={() => setRetentionModalOpen(true)}
+            disabled={!scanHasAligners(selectedScan)}
+            title={
+              scanHasAligners(selectedScan)
+                ? undefined
+                : "El escaneo todavía no tiene alineadores"
+            }
+            className="rounded-lg border border-blue-600 px-4 py-2 text-sm font-semibold text-blue-500 hover:bg-blue-950/20 active:bg-blue-950/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+          >
+            Solicitar contención
           </button>
         )}
       </div>
@@ -272,6 +379,69 @@ export default function ScanSection({ patient }: ScanSectionProps) {
           onCreated={() => setReprintRefreshKey((k) => k + 1)}
         />
       )}
+
+      {/* Retention request modal (Modo B) */}
+      {selectedScan && (
+        <RetentionRequestModal
+          scan={selectedScan}
+          patientId={patient.id}
+          open={retentionModalOpen}
+          onClose={() => setRetentionModalOpen(false)}
+          onCreated={handleRetentionCreated}
+        />
+      )}
+
+      {/* Finalize treatment prompt (after a retention + standalone button) */}
+      <FinalizeTreatmentModal
+        patientId={patient.id}
+        open={finalizeOpen}
+        title={
+          finalizeFromRetention
+            ? "Contención solicitada"
+            : "Finalizar tratamiento"
+        }
+        onResolved={handleFinalizeResolved}
+      />
+
+      {/* Reopen treatment confirm */}
+      <Modal
+        open={reopenOpen}
+        onClose={() => setReopenOpen(false)}
+        title="Reabrir tratamiento"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-text-primary">
+            ¿Reabrir el tratamiento del paciente?
+          </p>
+          <p className="text-sm text-text-muted">Volverá a quedar activo.</p>
+
+          {reopenError && (
+            <div className="rounded-lg bg-error-bg px-3 py-2 text-sm text-error-text">
+              {reopenError}
+            </div>
+          )}
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setReopenOpen(false)}
+              disabled={reopenSubmitting}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-text-secondary hover:bg-surface-hover disabled:opacity-50 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={handleReopen}
+              disabled={reopenSubmitting}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {reopenSubmitting && <Spinner />}
+              {reopenSubmitting ? "Reabriendo..." : "Reabrir"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
@@ -284,6 +454,9 @@ function scanHasAligners(scan: ScanWithForm): boolean {
 }
 
 function formatScanLabel(scan: ScanWithForm): string {
+  if (scan.scan_type === "retention") {
+    return `Escaneo ${scan.scan_number} (contención)`;
+  }
   if (scan.phase != null) {
     return `Escaneo ${scan.scan_number} (fase ${scan.phase})`;
   }

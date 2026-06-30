@@ -2,6 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import ImageUploadField from "@/components/image-upload-field";
+import ScannerSelect from "@/components/scanner-select";
 import { Spinner } from "@/components/ui/spinner";
 import { PHOTO_KEYS, type ClinicalForm as ClinicalFormType, type PhotoKey, type ScannerType } from "@/lib/types";
 
@@ -183,26 +184,7 @@ export default function ClinicalForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Scanner selector (only when creating a new scan) */}
-      {showScanner && (
-        <div>
-          <label
-            htmlFor="scanner-select"
-            className="block text-sm font-semibold text-text-primary"
-          >
-            ¿Con qué escáner escaneaste al paciente?
-          </label>
-          <select
-            id="scanner-select"
-            value={scanner}
-            onChange={(e) => setScanner(e.target.value as ScannerType | "")}
-            className="mt-1.5 block w-full rounded-lg border border-border bg-input-bg px-3 py-2.5 text-sm text-text-primary focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none sm:w-64"
-          >
-            <option value="">Seleccioná el escáner…</option>
-            <option value="shining">Shining 3D</option>
-            <option value="medit">Medit Link</option>
-          </select>
-        </div>
-      )}
+      {showScanner && <ScannerSelect value={scanner} onChange={setScanner} />}
 
       {/* Photo sections */}
       {PHOTO_SECTIONS.map((section) => (

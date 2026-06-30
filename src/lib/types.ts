@@ -6,16 +6,30 @@ export interface Lab {
   created_at: string;
 }
 
+export type TreatmentStatus = "active" | "closed";
+
 export interface Patient {
   id: number;
   dni: string;
   first_name: string;
   last_name: string;
   lab_id: number;
+  treatment_status: TreatmentStatus;
   created_at: string;
 }
 
 export type ScannerType = "shining" | "medit";
+export type ScanType = "treatment" | "retention";
+export type RetentionMode = "with_scan" | "from_aligner";
+
+/** Modo B source aligner. scan_number identifies which treatment scan the
+ * aligner comes from (numbering repeats across phases, so arch+number alone
+ * would be ambiguous). */
+export interface RetentionSourceAligner {
+  scan_number: number;
+  arch: "upper" | "lower";
+  number: number;
+}
 
 export interface Scan {
   id: number;
@@ -24,7 +38,7 @@ export interface Scan {
   case_number: string | null;
   lab_name: string | null;
   download_date: string | null;
-  origin: "csv" | "desktop" | "web" | "migration";
+  origin: "csv" | "desktop" | "web" | "migration" | "medit_csv" | "medit_desktop";
   scanner: ScannerType | null;
   phase: number | null;
   is_phase_start: boolean;
@@ -32,6 +46,11 @@ export interface Scan {
   lower_aligners_count: number | null;
   upper_stage: number;
   lower_stage: number;
+  scan_type: ScanType;
+  retention_mode: RetentionMode | null;
+  retention_source_aligner: RetentionSourceAligner | null;
+  retention_status: "pending" | "completed" | null;
+  retention_completed_at: string | null;
   created_at: string;
 }
 

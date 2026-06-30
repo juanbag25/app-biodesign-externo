@@ -49,7 +49,7 @@ export default function PatientSearch({
 
     const { data } = await supabase
       .from("patients")
-      .select("id, dni, first_name, last_name, lab_id, created_at")
+      .select("id, dni, first_name, last_name, lab_id, treatment_status, created_at")
       .or(orFilters)
       .order("last_name")
       .limit(50);

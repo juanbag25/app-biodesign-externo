@@ -7,6 +7,8 @@ import ClinicalForm, {
   type ClinicalFormData,
   type PhotoUrls,
 } from "@/components/clinical-form";
+import ScannerSelect from "@/components/scanner-select";
+import FinalizeTreatmentModal from "@/components/finalize-treatment-modal";
 import { Spinner } from "@/components/ui/spinner";
 import {
   PHOTO_KEYS,
@@ -48,6 +50,16 @@ export default function ClinicalFormPage() {
   const [error, setError] = useState("");
   const [defaultScanner, setDefaultScanner] = useState<ScannerType | null>(null);
 
+  // Modo A (contención con escaneo): type toggle + scanner-only mini form.
+  const [scanType, setScanType] = useState<"treatment" | "retention">(
+    "treatment"
+  );
+  const [retentionScanner, setRetentionScanner] = useState<ScannerType | "">("");
+  const [hasExistingScan, setHasExistingScan] = useState(false);
+  const [creatingRetention, setCreatingRetention] = useState(false);
+  const [retentionError, setRetentionError] = useState("");
+  const [showFinalize, setShowFinalize] = useState(false);
+
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -57,7 +69,7 @@ export default function ClinicalFormPage() {
     // Load patient info
     const { data: patientData } = await supabase
       .from("patients")
-      .select("id, dni, first_name, last_name, lab_id, created_at")
+      .select("id, dni, first_name, last_name, lab_id, treatment_status, created_at")
       .eq("id", patientId)
       .single();
 
@@ -107,7 +119,17 @@ export default function ClinicalFormPage() {
 
       if (lastScan?.scanner) {
         setDefaultScanner(lastScan.scanner as ScannerType);
+        setRetentionScanner(lastScan.scanner as ScannerType);
       }
+
+      // A contención (retention) can never be the patient's first scan — the
+      // first scan_number must be a treatment scan (contract invariant). Only
+      // offer Modo A when the patient already has at least one scan.
+      const { count } = await supabase
+        .from("scans")
+        .select("id", { count: "exact", head: true })
+        .eq("patient_id", patientId);
+      setHasExistingScan((count ?? 0) > 0);
     }
 
     setPageLoading(false);
@@ -223,6 +245,53 @@ export default function ClinicalFormPage() {
     router.refresh();
   }
 
+  // Modo A: create a retention scan (no clinical form), then ask about finishing.
+  async function handleCreateRetention() {
+    if (!hasExistingScan) {
+      setRetentionError(
+        "Una contención no puede ser el primer escaneo del paciente."
+      );
+      return;
+    }
+    if (!retentionScanner) {
+      setRetentionError("Elegí con qué escáner se hizo el escaneo.");
+      return;
+    }
+    setRetentionError("");
+    setCreatingRetention(true);
+
+    const { data: nextNum, error: rpcError } = await supabase.rpc(
+      "get_next_scan_number",
+      { p_patient_id: patientId }
+    );
+
+    if (rpcError || nextNum === null) {
+      setRetentionError("Error al obtener el número de escaneo.");
+      setCreatingRetention(false);
+      return;
+    }
+
+    const { error: scanError } = await supabase.from("scans").insert({
+      patient_id: patientId,
+      scan_number: nextNum,
+      origin: "web",
+      scanner: retentionScanner,
+      scan_type: "retention",
+      retention_mode: "with_scan",
+      retention_status: "pending",
+    });
+
+    setCreatingRetention(false);
+
+    if (scanError) {
+      setRetentionError("Error al crear la contención. Intentá de nuevo.");
+      return;
+    }
+
+    // Contenciones no llevan formulario clínico. Preguntar si finaliza.
+    setShowFinalize(true);
+  }
+
   if (pageLoading) {
     return (
       <div className="flex items-center justify-center py-16">
@@ -239,9 +308,11 @@ export default function ClinicalFormPage() {
         <h1 className="text-lg font-semibold text-text-primary">
           {isView
             ? "Formulario clínico"
-            : isNew
-              ? "Nuevo escaneo — Formulario clínico"
-              : "Completar formulario clínico"}
+            : !isNew
+              ? "Completar formulario clínico"
+              : scanType === "retention"
+                ? "Nueva contención"
+                : "Nuevo escaneo — Formulario clínico"}
         </h1>
         {patient && (
           <p className="mt-1 text-sm text-text-muted">
@@ -250,17 +321,99 @@ export default function ClinicalFormPage() {
         )}
       </div>
 
-      {/* Form */}
-      <ClinicalForm
-        readOnly={isView}
-        existingData={existingForm}
-        existingImageUrls={existingImageUrls}
-        loading={submitLoading}
-        error={error}
-        showScanner={isNew}
-        defaultScanner={defaultScanner}
-        onSubmit={handleSubmit}
-        onCancel={() => router.push("/")}
+      {/* Type toggle (only when creating a new scan, and only if the patient
+          already has a scan — a contención can't be the first scan) */}
+      {isNew && hasExistingScan && (
+        <div>
+          <p className="block text-sm font-semibold text-text-primary">
+            Tipo de escaneo
+          </p>
+          <div className="mt-1.5 flex gap-2">
+            <button
+              type="button"
+              onClick={() => setScanType("treatment")}
+              className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                scanType === "treatment"
+                  ? "border-blue-500 bg-blue-600/20 text-blue-400 font-medium"
+                  : "border-border bg-surface text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              Tratamiento
+            </button>
+            <button
+              type="button"
+              onClick={() => setScanType("retention")}
+              className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
+                scanType === "retention"
+                  ? "border-blue-500 bg-blue-600/20 text-blue-400 font-medium"
+                  : "border-border bg-surface text-text-secondary hover:bg-surface-hover"
+              }`}
+            >
+              Contención
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Form (treatment) or retention mini-form (Modo A) */}
+      {isNew && scanType === "retention" ? (
+        <div className="space-y-4">
+          <p className="text-sm text-text-muted">
+            La contención se crea como un escaneo nuevo, sin formulario clínico.
+            Indicá con qué escáner vas a escanear al paciente.
+          </p>
+          <ScannerSelect
+            value={retentionScanner}
+            onChange={setRetentionScanner}
+          />
+          {retentionError && (
+            <div className="rounded-lg bg-error-bg px-3 py-2 text-sm text-error-text">
+              {retentionError}
+            </div>
+          )}
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={handleCreateRetention}
+              disabled={creatingRetention}
+              className="flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {creatingRetention && <Spinner />}
+              {creatingRetention ? "Creando..." : "Crear contención"}
+            </button>
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="rounded-lg border border-border px-5 py-2.5 text-sm text-text-secondary hover:bg-surface-hover transition-colors"
+            >
+              Volver
+            </button>
+          </div>
+        </div>
+      ) : (
+        <ClinicalForm
+          readOnly={isView}
+          existingData={existingForm}
+          existingImageUrls={existingImageUrls}
+          loading={submitLoading}
+          error={error}
+          showScanner={isNew}
+          defaultScanner={defaultScanner}
+          onSubmit={handleSubmit}
+          onCancel={() => router.push("/")}
+        />
+      )}
+
+      {/* Finalize treatment prompt (after creating a retention) */}
+      <FinalizeTreatmentModal
+        patientId={patientId}
+        open={showFinalize}
+        title="Contención solicitada"
+        onResolved={() => {
+          setShowFinalize(false);
+          router.push("/");
+          router.refresh();
+        }}
       />
     </div>
   );

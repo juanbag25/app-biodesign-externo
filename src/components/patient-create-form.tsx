@@ -61,7 +61,7 @@ export default function PatientCreateForm({
         dni: trimmedDni,
         lab_id: labId,
       })
-      .select("id, dni, first_name, last_name, lab_id, created_at")
+      .select("id, dni, first_name, last_name, lab_id, treatment_status, created_at")
       .single();
 
     if (insertError) {
