@@ -4,32 +4,23 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Modal from "@/components/ui/modal";
 import { Spinner } from "@/components/ui/spinner";
-import type { ScanWithForm, RetentionSourceAligner } from "@/lib/types";
+import { formatAligners } from "@/lib/reprint-utils";
+import type { ScanWithForm, ReprintAligner } from "@/lib/types";
 
 interface RetentionRequestModalProps {
   /** Treatment scan whose aligners are offered as the retention source. */
   scan: ScanWithForm;
-  patientId: number;
   open: boolean;
   onClose: () => void;
-  /** Called after the retention scan row is created successfully. */
+  /** Called after the retention request row is created successfully. */
   onCreated: () => void;
 }
 
 type Step = "select" | "confirm";
 type Arch = "upper" | "lower";
 
-function keyOf(arch: Arch, number: number) {
-  return `${arch}-${number}`;
-}
-
-function archLabel(arch: Arch) {
-  return arch === "upper" ? "Superior" : "Inferior";
-}
-
 export default function RetentionRequestModal({
   scan,
-  patientId,
   open,
   onClose,
   onCreated,
@@ -37,7 +28,9 @@ export default function RetentionRequestModal({
   const supabase = createClient();
 
   const [step, setStep] = useState<Step>("select");
-  const [selected, setSelected] = useState<string | null>(null);
+  // One aligner per arch (upper/lower). Both optional, but at least one.
+  const [upperSel, setUpperSel] = useState<number | null>(null);
+  const [lowerSel, setLowerSel] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -45,7 +38,8 @@ export default function RetentionRequestModal({
   useEffect(() => {
     if (open) {
       setStep("select");
-      setSelected(null);
+      setUpperSel(null);
+      setLowerSel(null);
       setSubmitting(false);
       setError("");
     }
@@ -58,42 +52,26 @@ export default function RetentionRequestModal({
   const upperNumbers = Array.from({ length: upperCount }, (_, i) => i);
   const lowerNumbers = Array.from({ length: lowerCount }, (_, i) => i);
 
-  const sourceAligner: RetentionSourceAligner | null = selected
-    ? (() => {
-        const [arch, number] = selected.split("-");
-        return {
-          scan_number: scan.scan_number,
-          arch: arch as Arch,
-          number: Number(number),
-        };
-      })()
-    : null;
+  const aligners: ReprintAligner[] = [
+    ...(upperSel !== null ? [{ arch: "upper" as Arch, number: upperSel }] : []),
+    ...(lowerSel !== null ? [{ arch: "lower" as Arch, number: lowerSel }] : []),
+  ];
 
   async function handleConfirm() {
-    if (!sourceAligner) return;
+    if (aligners.length === 0) return;
     setSubmitting(true);
     setError("");
 
-    const { data: nextNum, error: rpcError } = await supabase.rpc(
-      "get_next_scan_number",
-      { p_patient_id: patientId }
-    );
-
-    if (rpcError || nextNum === null) {
-      setError("Error al obtener el número de escaneo.");
-      setSubmitting(false);
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("scans").insert({
-      patient_id: patientId,
-      scan_number: nextNum,
-      origin: "web",
-      scan_type: "retention",
-      retention_mode: "from_aligner",
-      retention_status: "pending",
-      retention_source_aligner: sourceAligner,
-    });
+    // Modo B lives in reprint_requests (a production request), NOT in scans.
+    // scan_id = the origin scan whose aligner(s) the retention plate is made from.
+    const { error: insertError } = await supabase
+      .from("reprint_requests")
+      .insert({
+        scan_id: scan.id,
+        request_type: "retention",
+        aligners,
+        status: "pending",
+      });
 
     if (insertError) {
       setError("Error al crear la contención. Intentá de nuevo.");
@@ -105,7 +83,12 @@ export default function RetentionRequestModal({
     onCreated();
   }
 
-  function renderArch(arch: Arch, numbers: number[]) {
+  function renderArch(
+    arch: Arch,
+    numbers: number[],
+    sel: number | null,
+    setSel: (n: number | null) => void
+  ) {
     if (numbers.length === 0) return null;
     return (
       <div>
@@ -114,12 +97,12 @@ export default function RetentionRequestModal({
         </p>
         <div className="flex flex-wrap gap-2">
           {numbers.map((n) => {
-            const active = selected === keyOf(arch, n);
+            const active = sel === n;
             return (
               <button
                 key={`${arch}-${n}`}
                 type="button"
-                onClick={() => setSelected(keyOf(arch, n))}
+                onClick={() => setSel(active ? null : n)}
                 className={`rounded-lg border px-3 py-1.5 text-sm tabular-nums transition-colors ${
                   active
                     ? "border-blue-500 bg-blue-600/20 text-blue-400 font-medium"
@@ -145,11 +128,12 @@ export default function RetentionRequestModal({
         <div className="space-y-4">
           <p className="text-sm text-text-muted">
             Elegí el alineador a partir del cual fabricar la placa de contención
-            (idealmente el último puesto en boca).
+            (idealmente el último puesto en boca). Podés elegir una o ambas
+            arcadas.
           </p>
 
-          {renderArch("upper", upperNumbers)}
-          {renderArch("lower", lowerNumbers)}
+          {renderArch("upper", upperNumbers, upperSel, setUpperSel)}
+          {renderArch("lower", lowerNumbers, lowerSel, setLowerSel)}
 
           <div className="flex justify-end gap-2 pt-2">
             <button
@@ -162,7 +146,7 @@ export default function RetentionRequestModal({
             <button
               type="button"
               onClick={() => setStep("confirm")}
-              disabled={!selected}
+              disabled={aligners.length === 0}
               className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-500 active:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               Continuar
@@ -172,12 +156,10 @@ export default function RetentionRequestModal({
       ) : (
         <div className="space-y-4">
           <p className="text-sm text-text-primary">
-            Vas a solicitar una contención a partir del alineador:
+            Vas a solicitar una contención a partir de:
           </p>
           <p className="rounded-lg bg-surface-hover px-3 py-2 text-sm font-medium text-text-primary">
-            {sourceAligner
-              ? `${archLabel(sourceAligner.arch)} ${sourceAligner.number} (escaneo ${sourceAligner.scan_number})`
-              : ""}
+            {formatAligners(aligners)} (escaneo {scan.scan_number})
           </p>
           <p className="text-sm text-text-muted">¿Estás seguro?</p>
 

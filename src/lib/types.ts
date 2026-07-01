@@ -21,15 +21,9 @@ export interface Patient {
 export type ScannerType = "shining" | "medit";
 export type ScanType = "treatment" | "retention";
 export type RetentionMode = "with_scan" | "from_aligner";
-
-/** Modo B source aligner. scan_number identifies which treatment scan the
- * aligner comes from (numbering repeats across phases, so arch+number alone
- * would be ambiguous). */
-export interface RetentionSourceAligner {
-  scan_number: number;
-  arch: "upper" | "lower";
-  number: number;
-}
+/** Retention lifecycle: pending (requested) → completed (produced by lab) →
+ * applied (put in the patient's mouth, marked by the dentist on the web). */
+export type RetentionStatus = "pending" | "completed" | "applied";
 
 export interface Scan {
   id: number;
@@ -48,9 +42,9 @@ export interface Scan {
   lower_stage: number;
   scan_type: ScanType;
   retention_mode: RetentionMode | null;
-  retention_source_aligner: RetentionSourceAligner | null;
-  retention_status: "pending" | "completed" | null;
+  retention_status: RetentionStatus | null;
   retention_completed_at: string | null;
+  retention_applied_at: string | null;
   created_at: string;
 }
 
@@ -109,11 +103,15 @@ export interface ReprintAligner {
   number: number;
 }
 
+export type RequestType = "reprint" | "retention";
+
 export interface ReprintRequest {
   id: number;
   scan_id: number;
+  request_type: RequestType;
   aligners: ReprintAligner[];
-  status: "pending" | "completed";
+  status: RetentionStatus;
   requested_at: string;
   completed_at: string | null;
+  applied_at: string | null;
 }

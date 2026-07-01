@@ -40,8 +40,11 @@ export default function ReprintRequestsList({
     setLoading(true);
     const { data } = await supabase
       .from("reprint_requests")
-      .select("id, scan_id, aligners, status, requested_at, completed_at")
+      .select(
+        "id, scan_id, request_type, aligners, status, requested_at, completed_at, applied_at"
+      )
       .eq("scan_id", scanId)
+      .eq("request_type", "reprint")
       .order("requested_at", { ascending: false });
 
     setRequests((data ?? []) as ReprintRequest[]);

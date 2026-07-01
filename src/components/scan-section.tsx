@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Spinner, CheckIcon } from "@/components/ui/spinner";
 import ReprintRequestModal from "@/components/reprint-request-modal";
 import ReprintRequestsList from "@/components/reprint-requests-list";
 import RetentionRequestModal from "@/components/retention-request-modal";
+import RetentionsSection from "@/components/retentions-section";
 import FinalizeTreatmentModal from "@/components/finalize-treatment-modal";
 import Modal from "@/components/ui/modal";
 import type { Patient, ScanWithForm, TreatmentStatus } from "@/lib/types";
@@ -40,20 +41,24 @@ export default function ScanSection({ patient }: ScanSectionProps) {
     patient.treatment_status
   );
 
+  const [retentionsKey, setRetentionsKey] = useState(0);
+  const [highlightRetentions, setHighlightRetentions] = useState(false);
+  const retentionsRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     loadScans();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [patient.id]);
 
-  async function loadScans() {
-    setLoading(true);
-    setSelectedScan(null);
+  async function loadScans(quiet = false) {
+    if (!quiet) setLoading(true);
+    const prevId = selectedScan?.id ?? null;
 
     // Fetch scans
     const { data: scanData } = await supabase
       .from("scans")
       .select(
-        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, phase, is_phase_start, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, scan_type, retention_mode, retention_source_aligner, retention_status, retention_completed_at, created_at"
+        "id, patient_id, scan_number, case_number, lab_name, download_date, origin, phase, is_phase_start, upper_aligners_count, lower_aligners_count, upper_stage, lower_stage, scan_type, retention_mode, retention_status, retention_completed_at, retention_applied_at, created_at"
       )
       .eq("patient_id", patient.id)
       .order("scan_number", { ascending: false });
@@ -85,10 +90,11 @@ export default function ScanSection({ patient }: ScanSectionProps) {
     }
 
     setScans(scanList);
-    if (scanList.length > 0) {
-      setSelectedScan(scanList[0]);
-    }
-    setLoading(false);
+    // Preserve the current selection across reloads; fall back to newest.
+    setSelectedScan(
+      scanList.find((s) => s.id === prevId) ?? scanList[0] ?? null
+    );
+    if (!quiet) setLoading(false);
   }
 
   async function updateStage(
@@ -133,15 +139,25 @@ export default function ScanSection({ patient }: ScanSectionProps) {
 
   function handleRetentionCreated() {
     setRetentionModalOpen(false);
+    setRetentionsKey((k) => k + 1);
     setFinalizeFromRetention(true);
     setFinalizeOpen(true);
+  }
+
+  function scrollToRetentions() {
+    retentionsRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+    setHighlightRetentions(true);
+    setTimeout(() => setHighlightRetentions(false), 1200);
   }
 
   function handleFinalizeResolved(closed: boolean) {
     setFinalizeOpen(false);
     if (closed) setTreatmentStatus("closed");
-    // Refresh so a just-created Modo B retention shows in the dropdown.
-    loadScans();
+    // A just-created Modo B retention already reloaded via the retentionsKey
+    // bump, and the treatment badge is updated optimistically — no full reload.
   }
 
   async function handleReopen() {
@@ -313,8 +329,21 @@ export default function ScanSection({ patient }: ScanSectionProps) {
             </select>
           </div>
 
-          {/* Scan details */}
-          {selectedScan && (
+          {/* Scan details (treatment) or contención note (Modo A) */}
+          {selectedScan && selectedScan.scan_type === "retention" ? (
+            <div className="rounded-xl border border-border bg-surface px-4 py-4">
+              <p className="text-sm text-text-secondary">
+                Este es un escaneo de contención.{" "}
+                <button
+                  type="button"
+                  onClick={scrollToRetentions}
+                  className="font-medium text-text-link hover:underline"
+                >
+                  Ver sección Contenciones
+                </button>
+              </p>
+            </div>
+          ) : selectedScan ? (
             <div className="rounded-xl border border-border bg-surface">
               {/* Aligner counts */}
               <div className="grid grid-cols-2 divide-x divide-border-subtle border-b border-border-subtle">
@@ -358,15 +387,29 @@ export default function ScanSection({ patient }: ScanSectionProps) {
                 </div>
               )}
             </div>
-          )}
+          ) : null}
 
-          {/* Reprint requests list */}
-          {selectedScan && (
+          {/* Reprint requests list — treatment scans only */}
+          {selectedScan && selectedScan.scan_type !== "retention" && (
             <ReprintRequestsList
               scanId={selectedScan.id}
               refreshKey={reprintRefreshKey}
             />
           )}
+
+          {/* Contenciones (Modo A + Modo B) */}
+          <div
+            ref={retentionsRef}
+            className={`rounded-xl transition-all duration-500 ${
+              highlightRetentions ? "ring-2 ring-blue-500" : "ring-0"
+            }`}
+          >
+            <RetentionsSection
+              scans={scans}
+              refreshKey={retentionsKey}
+              onChanged={() => loadScans(true)}
+            />
+          </div>
         </>
       )}
 
@@ -384,7 +427,6 @@ export default function ScanSection({ patient }: ScanSectionProps) {
       {selectedScan && (
         <RetentionRequestModal
           scan={selectedScan}
-          patientId={patient.id}
           open={retentionModalOpen}
           onClose={() => setRetentionModalOpen(false)}
           onCreated={handleRetentionCreated}

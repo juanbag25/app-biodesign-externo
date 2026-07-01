@@ -75,6 +75,7 @@ export default function ReprintRequestModal({
       .from("reprint_requests")
       .insert({
         scan_id: scan.id,
+        request_type: "reprint",
         aligners: selectedAligners,
         status: "pending",
       });
